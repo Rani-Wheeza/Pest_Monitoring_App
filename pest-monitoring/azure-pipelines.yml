@@ -40,59 +40,59 @@ stages:
 
     - task: Cache@2
       inputs:
-        key: 'pip | "$(Agent.OS)" | backend/requirements-dev.txt | backend/requirements.txt'
+        key: 'pip | "$(Agent.OS)" | pest-monitoring/backend/requirements-dev.txt | pest-monitoring/backend/requirements.txt'
         path: $(PIP_CACHE_DIR)
       displayName: Cache pip downloads
 
     - script: |
         python -m pip install --upgrade pip
         pip install -r requirements-dev.txt
-      workingDirectory: backend
+      workingDirectory: pest-monitoring/backend
       displayName: Install dependencies
 
     - script: python manage.py makemigrations --check --dry-run
-      workingDirectory: backend
+      workingDirectory: pest-monitoring/backend
       displayName: Check migrations are committed
 
     - script: ruff check . --output-format=azure
-      workingDirectory: backend
+      workingDirectory: pest-monitoring/backend
       displayName: Code analysis (ruff - errors, security, complexity)
 
     - script: codespell .
-      workingDirectory: backend
+      workingDirectory: pest-monitoring/backend
       displayName: Spelling check (codespell)
 
     - script: lint-imports
-      workingDirectory: backend
+      workingDirectory: pest-monitoring/backend
       displayName: Architecture validation (import-linter)
 
     - script: |
         echo "## Cyclomatic complexity" && radon cc domain reference accounts sightings alerts -a -s -e "*/migrations/*"
         echo "## Maintainability index" && radon mi domain reference accounts sightings alerts -s -e "*/migrations/*"
         xenon --max-absolute B --max-modules B --max-average A -e "*/migrations/*,tests/*" .
-      workingDirectory: backend
+      workingDirectory: pest-monitoring/backend
       displayName: Code metrics (radon) and complexity gate (xenon)
 
     - script: pylint --disable=all --enable=duplicate-code --min-similarity-lines=8 domain reference accounts sightings alerts
-      workingDirectory: backend
+      workingDirectory: pest-monitoring/backend
       displayName: Duplicate code detection (pylint)
 
     - script: pip-audit -r requirements.txt
-      workingDirectory: backend
+      workingDirectory: pest-monitoring/backend
       displayName: Dependency vulnerability scan (pip-audit)
 
     - script: >
         pytest
         --junitxml=test-results.xml
         --cov --cov-report=xml:coverage.xml --cov-report=term
-      workingDirectory: backend
+      workingDirectory: pest-monitoring/backend
       displayName: Unit and API tests with coverage
 
     - task: PublishTestResults@2
       condition: succeededOrFailed()
       inputs:
         testResultsFormat: JUnit
-        testResultsFiles: backend/test-results.xml
+        testResultsFiles: pest-monitoring/backend/test-results.xml
         testRunTitle: Backend tests
         failTaskOnFailedTests: true
       displayName: Publish backend test results
@@ -100,7 +100,7 @@ stages:
     - task: PublishCodeCoverageResults@2
       condition: succeededOrFailed()
       inputs:
-        summaryFileLocation: backend/coverage.xml
+        summaryFileLocation: pest-monitoring/backend/coverage.xml
       displayName: Publish backend coverage
 
   # ---------------- Frontend (Angular) ----------------
@@ -116,22 +116,22 @@ stages:
 
     - script: |
         if [ -f package-lock.json ]; then npm ci; else npm install; fi
-      workingDirectory: frontend
+      workingDirectory: pest-monitoring/frontend
       displayName: Install dependencies
 
     - script: npm run lint
-      workingDirectory: frontend
+      workingDirectory: pest-monitoring/frontend
       displayName: Code analysis (ESLint)
 
     - script: npm run test:ci
-      workingDirectory: frontend
+      workingDirectory: pest-monitoring/frontend
       displayName: Unit tests with coverage (Karma, headless Chrome)
 
     - task: PublishTestResults@2
       condition: succeededOrFailed()
       inputs:
         testResultsFormat: JUnit
-        testResultsFiles: frontend/test-results/junit.xml
+        testResultsFiles: pest-monitoring/frontend/test-results/junit.xml
         testRunTitle: Frontend tests
         failTaskOnFailedTests: true
       displayName: Publish frontend test results
@@ -139,18 +139,18 @@ stages:
     - task: PublishCodeCoverageResults@2
       condition: succeededOrFailed()
       inputs:
-        summaryFileLocation: frontend/coverage/cobertura-coverage.xml
+        summaryFileLocation: pest-monitoring/frontend/coverage/cobertura-coverage.xml
       displayName: Publish frontend coverage
 
     - script: npm run build
-      workingDirectory: frontend
+      workingDirectory: pest-monitoring/frontend
       displayName: Production build
 
     - script: npm audit --audit-level=high --omit=dev
-      workingDirectory: frontend
+      workingDirectory: pest-monitoring/frontend
       displayName: Dependency vulnerability scan (npm audit)
 
-    - publish: frontend/dist
+    - publish: pest-monitoring/frontend/dist
       artifact: frontend
       displayName: Save built frontend
 
@@ -162,7 +162,7 @@ stages:
     pool:
       vmImage: ubuntu-latest
     steps:
-    - script: docker build -t pest-monitoring-backend:$(Build.BuildId) backend
+    - script: docker build -t pest-monitoring-backend:$(Build.BuildId) -f pest-monitoring/backend/Dockerfile pest-monitoring/backend
       displayName: Build image
     # When the ACR service connection exists (Task 3), replace the step above with:
     # - task: Docker@2
