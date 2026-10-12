@@ -1,0 +1,74 @@
+[project]
+name = "pest-monitoring-backend"
+version = "0.1.0"
+requires-python = ">=3.12"
+
+# ---------- Tests (Task 3.3, Task 4.3) ----------
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-ra --strict-markers"
+
+[tool.coverage.run]
+source = ["domain", "reference", "accounts", "sightings", "alerts"]
+omit = ["*/migrations/*", "*/admin.py", "*/apps.py"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+fail_under = 80
+
+# ---------- Code analysis (Task 3.1) ----------
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+extend-exclude = ["*/migrations/*"]
+
+[tool.ruff.lint]
+# E/W style, F errors, I imports, B likely bugs, S security (bandit), C90 complexity,
+# UP modern syntax, DJ Django rules, SIM simplifications, N naming
+select = ["E", "W", "F", "I", "B", "S", "C90", "UP", "DJ", "SIM", "N"]
+ignore = ["DJ001"]  # blank=True CharFields are fine without null=True
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106"]  # asserts and fake secrets are expected in tests
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.isort]
+known-first-party = ["config", "domain", "reference", "accounts", "sightings", "alerts"]
+
+# ---------- Spelling (Task 3.1) ----------
+[tool.codespell]
+skip = "*.sqlite3,./media,./staticfiles,*.lock"
+ignore-words-list = "ue"
+
+# ---------- Architecture validation (Task 3 higher grade) ----------
+[tool.importlinter]
+root_packages = ["domain", "config", "reference", "accounts", "sightings", "alerts"]
+
+[[tool.importlinter.contracts]]
+name = "Domain rules are plain Python (no Django, no web framework)"
+type = "forbidden"
+source_modules = ["domain"]
+forbidden_modules = ["django", "rest_framework", "config", "reference", "accounts", "sightings", "alerts"]
+
+[[tool.importlinter.contracts]]
+name = "Sightings app layers: views -> serializers -> services -> repositories -> models"
+type = "layers"
+layers = [
+    "sightings.views",
+    "sightings.serializers",
+    "sightings.services",
+    "sightings.repositories",
+    "sightings.models",
+]
+
+[[tool.importlinter.contracts]]
+name = "Reference data does not depend on feature apps"
+type = "forbidden"
+source_modules = ["reference"]
+forbidden_modules = ["accounts", "sightings", "alerts"]

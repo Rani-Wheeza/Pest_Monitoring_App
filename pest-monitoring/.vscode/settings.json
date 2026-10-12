@@ -1,0 +1,8 @@
+{
+  "python.defaultInterpreterPath": "backend/.venv/bin/python",
+  "python.testing.pytestEnabled": true,
+  "python.testing.cwd": "${workspaceFolder}/backend",
+  "python.testing.pytestArgs": ["tests"],
+  "[python]": { "editor.defaultFormatter": "charliermarsh.ruff" },
+  "files.associations": { "azure-pipelines.yml": "azure-pipelines" }
+}

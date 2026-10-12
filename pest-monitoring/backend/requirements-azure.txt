@@ -1,0 +1,6 @@
+# Extra packages for running in Azure (used by the Docker image).
+-r requirements.txt
+mssql-django>=2.0,<3.0           # Azure SQL Database backend (brings in mssql-python)
+django-storages[azure]>=1.14,<2  # photos in Azure Blob Storage
+azure-identity>=1.17,<2          # managed identity, no secrets in code
+azure-monitor-opentelemetry>=1.6,<2  # logs and metrics to Application Insights

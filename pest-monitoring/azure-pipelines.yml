@@ -1,0 +1,174 @@
+# Continuous Integration for Pest Monitoring (Part 2, Task 4)
+# Runs on every push to main/develop and on every pull request into them.
+# Manual build steps mapped to automated tasks:
+#   "check my code"        -> ruff, codespell, ESLint
+#   "check the layers"     -> import-linter (architecture validation)
+#   "check code quality"   -> radon/xenon metrics, pylint duplicate-code
+#   "run the tests"        -> pytest + Karma, published as test results
+#   "how much is tested"   -> coverage, published as Cobertura
+#   "does it build"        -> ng build, docker build
+
+trigger:
+  branches:
+    include: [main, develop]
+
+pr:
+  branches:
+    include: [main, develop]
+
+variables:
+  pythonVersion: '3.12'
+  nodeVersion: '22.x'
+
+stages:
+- stage: Build
+  displayName: Build and test
+  jobs:
+
+  # ---------------- Backend (Django) ----------------
+  - job: Backend
+    displayName: Backend - analysis, tests, coverage
+    pool:
+      vmImage: ubuntu-latest
+    variables:
+      PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
+    steps:
+    - task: UsePythonVersion@0
+      inputs:
+        versionSpec: $(pythonVersion)
+      displayName: Use Python $(pythonVersion)
+
+    - task: Cache@2
+      inputs:
+        key: 'pip | "$(Agent.OS)" | backend/requirements-dev.txt | backend/requirements.txt'
+        path: $(PIP_CACHE_DIR)
+      displayName: Cache pip downloads
+
+    - script: |
+        python -m pip install --upgrade pip
+        pip install -r requirements-dev.txt
+      workingDirectory: backend
+      displayName: Install dependencies
+
+    - script: python manage.py makemigrations --check --dry-run
+      workingDirectory: backend
+      displayName: Check migrations are committed
+
+    - script: ruff check . --output-format=azure
+      workingDirectory: backend
+      displayName: Code analysis (ruff - errors, security, complexity)
+
+    - script: codespell .
+      workingDirectory: backend
+      displayName: Spelling check (codespell)
+
+    - script: lint-imports
+      workingDirectory: backend
+      displayName: Architecture validation (import-linter)
+
+    - script: |
+        echo "## Cyclomatic complexity" && radon cc domain reference accounts sightings alerts -a -s -e "*/migrations/*"
+        echo "## Maintainability index" && radon mi domain reference accounts sightings alerts -s -e "*/migrations/*"
+        xenon --max-absolute B --max-modules B --max-average A -e "*/migrations/*,tests/*" .
+      workingDirectory: backend
+      displayName: Code metrics (radon) and complexity gate (xenon)
+
+    - script: pylint --disable=all --enable=duplicate-code --min-similarity-lines=8 domain reference accounts sightings alerts
+      workingDirectory: backend
+      displayName: Duplicate code detection (pylint)
+
+    - script: pip-audit -r requirements.txt
+      workingDirectory: backend
+      displayName: Dependency vulnerability scan (pip-audit)
+
+    - script: >
+        pytest
+        --junitxml=test-results.xml
+        --cov --cov-report=xml:coverage.xml --cov-report=term
+      workingDirectory: backend
+      displayName: Unit and API tests with coverage
+
+    - task: PublishTestResults@2
+      condition: succeededOrFailed()
+      inputs:
+        testResultsFormat: JUnit
+        testResultsFiles: backend/test-results.xml
+        testRunTitle: Backend tests
+        failTaskOnFailedTests: true
+      displayName: Publish backend test results
+
+    - task: PublishCodeCoverageResults@2
+      condition: succeededOrFailed()
+      inputs:
+        summaryFileLocation: backend/coverage.xml
+      displayName: Publish backend coverage
+
+  # ---------------- Frontend (Angular) ----------------
+  - job: Frontend
+    displayName: Frontend - lint, tests, build
+    pool:
+      vmImage: ubuntu-latest
+    steps:
+    - task: NodeTool@0
+      inputs:
+        versionSpec: $(nodeVersion)
+      displayName: Use Node $(nodeVersion)
+
+    - script: |
+        if [ -f package-lock.json ]; then npm ci; else npm install; fi
+      workingDirectory: frontend
+      displayName: Install dependencies
+
+    - script: npm run lint
+      workingDirectory: frontend
+      displayName: Code analysis (ESLint)
+
+    - script: npm run test:ci
+      workingDirectory: frontend
+      displayName: Unit tests with coverage (Karma, headless Chrome)
+
+    - task: PublishTestResults@2
+      condition: succeededOrFailed()
+      inputs:
+        testResultsFormat: JUnit
+        testResultsFiles: frontend/test-results/junit.xml
+        testRunTitle: Frontend tests
+        failTaskOnFailedTests: true
+      displayName: Publish frontend test results
+
+    - task: PublishCodeCoverageResults@2
+      condition: succeededOrFailed()
+      inputs:
+        summaryFileLocation: frontend/coverage/cobertura-coverage.xml
+      displayName: Publish frontend coverage
+
+    - script: npm run build
+      workingDirectory: frontend
+      displayName: Production build
+
+    - script: npm audit --audit-level=high --omit=dev
+      workingDirectory: frontend
+      displayName: Dependency vulnerability scan (npm audit)
+
+    - publish: frontend/dist
+      artifact: frontend
+      displayName: Save built frontend
+
+  # ---------------- Container image ----------------
+  - job: Docker
+    displayName: Backend Docker image
+    dependsOn: Backend
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    pool:
+      vmImage: ubuntu-latest
+    steps:
+    - script: docker build -t pest-monitoring-backend:$(Build.BuildId) backend
+      displayName: Build image
+    # When the ACR service connection exists (Task 3), replace the step above with:
+    # - task: Docker@2
+    #   inputs:
+    #     containerRegistry: 'acr-pest-monitoring'   # service connection name
+    #     repository: 'pest-monitoring-backend'
+    #     command: buildAndPush
+    #     Dockerfile: backend/Dockerfile
+    #     tags: $(Build.BuildId)

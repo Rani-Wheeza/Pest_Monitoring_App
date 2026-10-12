@@ -1,0 +1,189 @@
+<section class="page report">
+  <div class="intro">
+    <span class="eyebrow">Report a sighting</span>
+    <h1>Submit a pest report</h1>
+    <p>Takes about 2 minutes. Your contact details stay private and are only used if the team needs clarification.</p>
+  </div>
+
+  <div class="card">
+    @if (step() !== 'done') {
+      <ol class="stepper" aria-label="Progress">
+        <li [class.active]="step() === 1" [class.complete]="step() !== 1">1. Details</li>
+        <li [class.active]="step() === 2" [class.complete]="step() === 3">2. Location</li>
+        <li [class.active]="step() === 3">3. Review</li>
+      </ol>
+      <p class="required-note">* Required</p>
+    }
+
+    <!-- Step 1: Details (Figma 14-3) -->
+    @if (step() === 1) {
+      <form [formGroup]="details" (ngSubmit)="next()" novalidate>
+        <div class="row">
+          <div class="field">
+            <label for="species">What did you see? *</label>
+            <select id="species" formControlName="species_id">
+              <option [ngValue]="null" disabled>Choose a pest</option>
+              @for (s of species(); track s.id) {
+                <option [ngValue]="s.id">{{ s.common_name }}</option>
+              }
+            </select>
+            @if (details.controls.species_id.touched && details.controls.species_id.invalid) {
+              <span class="error">Choose the pest you saw.</span>
+            }
+          </div>
+          <div class="field">
+            <label for="count">How many? *</label>
+            <select id="count" formControlName="count">
+              <option value="" disabled>Choose</option>
+              @for (c of countOptions; track c) {
+                <option [value]="c">{{ c }}</option>
+              }
+            </select>
+            @if (details.controls.count.touched && details.controls.count.invalid) {
+              <span class="error">Say how many you saw.</span>
+            }
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="description">Describe what happened *</label>
+          <textarea id="description" rows="3" formControlName="description"
+                    placeholder="Behaviour, time of day, or anything unusual"></textarea>
+          @if (details.controls.description.touched && details.controls.description.invalid) {
+            <span class="error">Add a short description (up to 1000 characters).</span>
+          }
+        </div>
+
+        <fieldset class="field">
+          <legend>Add tags</legend>
+          <div class="chips">
+            @for (t of tags(); track t.id) {
+              <button type="button" class="chip" [class.selected]="isTagSelected(t.id)"
+                      [attr.aria-pressed]="isTagSelected(t.id)" (click)="toggleTag(t.id)">{{ t.name }}</button>
+            }
+          </div>
+        </fieldset>
+
+        <div class="field">
+          <label for="photo">Add a photo (optional)</label>
+          <input id="photo" type="file" accept="image/jpeg,image/png" (change)="onPhotoSelected($event)" />
+          <span class="hint">JPG or PNG, up to 10 MB. Location data is removed from the photo.</span>
+          @if (photoError()) {
+            <span class="error">{{ photoError() }}</span>
+          }
+        </div>
+
+        <div class="field">
+          <label for="email">Contact email (only if you are not signed in)</label>
+          <input id="email" type="email" formControlName="contact_email" autocomplete="email" />
+        </div>
+
+        <div class="actions">
+          <span></span>
+          <button type="submit" class="primary">Continue to location</button>
+        </div>
+      </form>
+    }
+
+    <!-- Step 2: Location (Figma 17-312) -->
+    @if (step() === 2) {
+      <form [formGroup]="location" (ngSubmit)="next()" novalidate>
+        <h2>Where did you see them?</h2>
+        <p class="hint">Drop the pin as close as you can. An exact address isn't required.</p>
+
+        <app-location-picker [latitude]="location.controls.latitude.value"
+                             [longitude]="location.controls.longitude.value"
+                             (pinMoved)="onPinMoved($event)" />
+        @if (location.controls.latitude.touched && location.controls.latitude.invalid) {
+          <span class="error">Drop a pin or use your location.</span>
+        }
+
+        <div class="field">
+          <label for="landmark">Street or landmark *</label>
+          <input id="landmark" formControlName="street_or_landmark" />
+          @if (location.controls.street_or_landmark.touched && location.controls.street_or_landmark.invalid) {
+            <span class="error">Add a street or landmark.</span>
+          }
+        </div>
+        <div class="field">
+          <label for="suburb">Suburb or postcode *</label>
+          <input id="suburb" formControlName="suburb_or_postcode" />
+          @if (location.controls.suburb_or_postcode.touched && location.controls.suburb_or_postcode.invalid) {
+            <span class="error">Add a suburb or postcode.</span>
+          }
+        </div>
+
+        <div class="actions">
+          <button type="button" (click)="back()">Back to details</button>
+          <button type="submit" class="primary">Continue to review</button>
+        </div>
+      </form>
+    }
+
+    <!-- Step 3: Review (Figma 17-379) -->
+    @if (step() === 3) {
+      <h2>Review your report</h2>
+      <p class="hint">Check everything looks right before sending it to the response team.</p>
+
+      <div class="summary">
+        <div class="summary-head"><h3>Sighting details</h3><button type="button" class="link" (click)="edit(1)">Edit</button></div>
+        <dl>
+          <dt>Pest and count</dt><dd>{{ speciesName() }} · {{ details.controls.count.value }}</dd>
+          <dt>Description</dt><dd>{{ details.controls.description.value }}</dd>
+          <dt>Tags</dt><dd>{{ tagNames() || 'None' }}</dd>
+          <dt>Photo</dt><dd>{{ photo()?.name || 'None' }}</dd>
+        </dl>
+        <div class="summary-head"><h3>Location</h3><button type="button" class="link" (click)="edit(2)">Edit</button></div>
+        <dl>
+          <dt>Place</dt><dd>{{ location.controls.street_or_landmark.value }}</dd>
+          <dt>Area</dt><dd>{{ location.controls.suburb_or_postcode.value }}</dd>
+          @if (location.controls.location_accuracy_m.value) {
+            <dt>Pin accuracy</dt><dd>{{ location.controls.location_accuracy_m.value }} m</dd>
+          }
+        </dl>
+      </div>
+
+      <label class="confirm">
+        <input type="checkbox" [formControl]="confirmed" />
+        I confirm this report is accurate to the best of my knowledge.
+      </label>
+      @if (confirmed.touched && confirmed.invalid) {
+        <span class="error">Please confirm before submitting.</span>
+      }
+
+      @if (serverErrors().length) {
+        <div class="alert" role="alert">
+          @for (line of serverErrors(); track line) {
+            <p>{{ line }}</p>
+          }
+        </div>
+      }
+
+      <div class="actions">
+        <button type="button" (click)="back()">Back to location</button>
+        <button type="button" class="primary" [disabled]="submitting()" (click)="submit()">
+          {{ submitting() ? 'Submitting…' : 'Submit report' }}
+        </button>
+      </div>
+      <p class="hint right">You can't edit after submitting.</p>
+    }
+
+    <!-- Confirmation (Figma 14-80) -->
+    @if (step() === 'done') {
+      @if (result(); as r) {
+      <div class="done" role="status">
+        <h2>Thanks – your report is in.</h2>
+        <p>Your sighting is now waiting for the response team to review it.</p>
+        <p class="reference">Report <strong>#{{ r.reference }}</strong> <span class="badge badge-waiting">{{ r.resident_status }}</span></p>
+        @if (photoError()) {
+          <p class="error">{{ photoError() }}</p>
+        }
+        <div class="actions">
+          <button type="button" (click)="startAgain()">Report another sighting</button>
+          <a class="button primary" routerLink="/my-reports">View my reports</a>
+        </div>
+      </div>
+      }
+    }
+  </div>
+</section>

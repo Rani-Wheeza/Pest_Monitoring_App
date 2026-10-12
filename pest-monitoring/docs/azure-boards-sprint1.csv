@@ -1,0 +1,72 @@
+ID,Work Item Type,Title 1,Title 2,Title 3,Title 4,Description,Acceptance Criteria,Tags,Iteration Path
+18,Epic,Task 1: Setting Up Version Control,,,,,,,Pest Monitoring\Sprint 1
+,Feature,,Version control and branching,,,"Azure Repos, IDE mapping, branching strategy and check-in policies.",,,Pest Monitoring\Sprint 1
+,User Story,,,As a developer I want the repository mapped to my IDE so that I can pull and push code,,docs/IDE-SETUP.md,Each member has cloned the repo in VS Code or PyCharm; each has pushed a branch and opened a PR.,version-control,Pest Monitoring\Sprint 1
+,Task,,,,Clone the repo in VS Code and push a test branch (each member),Follow docs/IDE-SETUP.md,,,Pest Monitoring\Sprint 1
+,Task,,,,Create the develop branch from main,git switch -c develop && git push -u origin develop,,,Pest Monitoring\Sprint 1
+,User Story,,,As the team we want a branching strategy with check-in policies so that main is always stable,,docs/BRANCHING.md,"develop and main have branch policies: 1 reviewer, linked work items, comment resolution, build validation.",version-control,Pest Monitoring\Sprint 1
+,Task,,,,Write and justify the branching strategy,docs/BRANCHING.md,,,Pest Monitoring\Sprint 1
+,Task,,,,Set branch policies on main and develop,Repos > Branches > Branch policies (see docs/BRANCHING.md),,,Pest Monitoring\Sprint 1
+,Task,,,,Turn on commit mention linking (AB#),Repos > Settings > Repository,,,Pest Monitoring\Sprint 1
+19,Epic,Task 2: Software Development/Code Sprint,,,,,,,Pest Monitoring\Sprint 1
+,Feature,,User Management,,,Epic 1 in Task 9,,,Pest Monitoring\Sprint 1
+,User Story,,,US-01 User authentication,,"As a user, I want to securely log into the application so that I can access protected functionality.","Given a valid Entra ID token, When I call the API, Then I am signed in with my Entra role. Expired, forged or wrong-audience tokens are rejected (401). Disabled accounts are rejected.",security,Pest Monitoring\Sprint 1
+,Task,,,,Validate Entra ID access tokens,"backend/domain/identity.py, backend/accounts/authentication.py",,security,Pest Monitoring\Sprint 1
+,Task,,,,Custom user model with roles,backend/accounts/models.py,,data-model,Pest Monitoring\Sprint 1
+,Task,,,,GET/PATCH /api/me/ endpoint,backend/accounts/views.py,,,Pest Monitoring\Sprint 1
+,Task,,,,Test: token checks and roles,"backend/tests/domain/test_identity.py, backend/tests/api/test_auth_api.py",,test,Pest Monitoring\Sprint 1
+,Feature,,Pest Sightings,,,Epic 2 in Task 9,,,Pest Monitoring\Sprint 1
+,User Story,,,US-02 Submit pest report,,"As a user, I want to submit a pest sighting so that I can contribute information to the monitoring system.","Species, count, description, pin, landmark and postcode are required; time cannot be in the future; anonymous reports need an email; all errors are returned together; valid reports are stored as AwaitingReview with a PP- reference.",,Pest Monitoring\Sprint 1
+,Task,,,,Sighting validation rules,backend/domain/validation.py,,,Pest Monitoring\Sprint 1
+,Task,,,,"Sighting, photo and history models",backend/sightings/models.py,,data-model,Pest Monitoring\Sprint 1
+,Task,,,,Sighting repository and service layer,"backend/sightings/repositories.py, backend/sightings/services.py",,,Pest Monitoring\Sprint 1
+,Task,,,,POST /api/sightings/ endpoint,"backend/sightings/views.py, serializers.py",,,Pest Monitoring\Sprint 1
+,Task,,,,"Seed districts, species and tags","backend/reference/seed.py, manage.py seed_reference_data",,data-model,Pest Monitoring\Sprint 1
+,Task,,,,Angular 3-step report form,frontend/src/app/features/report/,,ux,Pest Monitoring\Sprint 1
+,Task,,,,Angular resident dashboard (My reports),frontend/src/app/features/my-reports/,,ux,Pest Monitoring\Sprint 1
+,Task,,,,Test: validation rules,backend/tests/domain/test_validation.py,,test,Pest Monitoring\Sprint 1
+,Task,,,,Test: submit API,backend/tests/api/test_sightings_api.py,,test,Pest Monitoring\Sprint 1
+,Task,,,,Test: report form component,frontend/src/app/features/report/report-sighting.spec.ts,,test,Pest Monitoring\Sprint 1
+,User Story,,,US-03 Attach a photo,,"As a user, I want to attach an optional photo to my pest report so that I can provide evidence of the sighting.","JPG/PNG up to 10 MB only; GPS/EXIF data removed; max 3 photos; only the reporter, a worker, or an anonymous reporter with the upload token can attach; submitting without a photo still works.",security,Pest Monitoring\Sprint 1
+,Task,,,,Photo checks and metadata removal,backend/domain/images.py,,security,Pest Monitoring\Sprint 1
+,Task,,,,POST /api/sightings/<id>/photo/ endpoint,"backend/sightings/views.py, services.attach_photo",,,Pest Monitoring\Sprint 1
+,Task,,,,Photo picker in the report form,frontend/src/app/features/report/,,ux,Pest Monitoring\Sprint 1
+,Task,,,,Test: photo rules and upload API,"backend/tests/domain/test_images.py, backend/tests/api/test_sightings_api.py",,test,Pest Monitoring\Sprint 1
+,User Story,,,Worker reviews a new sighting,,"As a worker, I want to confirm or reject new sightings so that only reliable reports appear on the map.",Only workers can review; confirm needs a priority; reject needs a reason; a sighting can only be reviewed once; every change is logged.,security,Pest Monitoring\Sprint 1
+,Task,,,,PATCH /api/sightings/<id>/review/ and GET /api/sightings/all/,"backend/sightings/services.review_sighting, views.py",,,Pest Monitoring\Sprint 1
+,Task,,,,Test: review API,backend/tests/api/test_sightings_api.py,,test,Pest Monitoring\Sprint 1
+,Feature,,Mapping & Visualisation,,,Epic 3 in Task 9,,,Pest Monitoring\Sprint 1
+,User Story,,,US-04 View pest map,,"As a user, I want to view pest activity on a map so that I can understand where pest sightings have occurred.","Map data comes from stored sightings as GeoJSON; the public map shows only reviewed, open sightings with positions rounded to about 100 m; workers also see unreviewed ones.",,Pest Monitoring\Sprint 1
+,Task,,,,GET /api/map/ GeoJSON endpoint,"backend/domain/geo.py, sightings/services.map_features",,,Pest Monitoring\Sprint 1
+,Task,,,,Angular map page with Azure Maps adapter,"frontend/src/app/features/map/, core/azure-maps.ts",,ux,Pest Monitoring\Sprint 1
+,Task,,,,Test: map API,"backend/tests/api/test_map_api.py, frontend pest-map.spec.ts",,test,Pest Monitoring\Sprint 1
+,User Story,,,US-05 Filter pest map,,"As a user, I want to filter pest activity by species so that I can investigate particular pests.","Filter by species, family, genus, days and visible area; clearing filters shows all sightings again.",,Pest Monitoring\Sprint 1
+,Task,,,,"Map filters (species, family, genus, days, bbox)","sightings/serializers.MapQuerySerializer, frontend map filter bar",,,Pest Monitoring\Sprint 1
+,Task,,,,Test: map filters,backend/tests/api/test_map_api.py,,test,Pest Monitoring\Sprint 1
+,Feature,,Notifications,,,Epic 4 in Task 9,,,Pest Monitoring\Sprint 1
+,User Story,,,US-06 Receive pest alert,,"As a user, I want to receive an alert when pest activity reaches a significant level so that I can take preventative action.","High activity (threshold in 30 days), unseasonal and invasive-species alerts are detected; open alerts are updated, not duplicated; only users in the district who consented are notified; failed sends are retried.",,Pest Monitoring\Sprint 1
+,Task,,,,"Alert rules (threshold, season, invasive)",backend/domain/alerts.py,,,Pest Monitoring\Sprint 1
+,Task,,,,check_pest_levels command and alert service,"backend/alerts/services.py, management/commands/check_pest_levels.py",,,Pest Monitoring\Sprint 1
+,Task,,,,Notification Hubs REST sender,"backend/domain/notification_hub.py, backend/alerts/senders.py",,dependency,Pest Monitoring\Sprint 1
+,Task,,,,GET /api/notifications/ and mark as read,backend/alerts/views.py,,,Pest Monitoring\Sprint 1
+,Task,,,,"Test: alert rules, threshold job and sender","backend/tests/domain/test_alerts.py, tests/api/test_alerts_api.py, test_senders_and_seed.py",,test,Pest Monitoring\Sprint 1
+20,Epic,Task 3: Testing and Code Quality - Managing Technical Debt:,,,,,,,Pest Monitoring\Sprint 1
+,Feature,,Code quality and technical debt,,,,,,Pest Monitoring\Sprint 1
+,User Story,,,As the team we want automatic code analysis and metrics so that problems are found before review,,docs/CODE-QUALITY.md,"ruff, codespell, ESLint, radon/xenon and duplicate detection run locally and in CI; findings are fixed or justified.",quality,Pest Monitoring\Sprint 1
+,Task,,,,Configure ruff and codespell,backend/pyproject.toml,,,Pest Monitoring\Sprint 1
+,Task,,,,Configure ESLint with angular-eslint,frontend/eslint.config.js,,,Pest Monitoring\Sprint 1
+,Task,,,,Code metrics with radon and complexity gate with xenon,azure-pipelines.yml,,,Pest Monitoring\Sprint 1
+,Task,,,,Duplicate code detection with pylint,azure-pipelines.yml,,,Pest Monitoring\Sprint 1
+,Task,,,,Architecture validation contracts with import-linter,backend/pyproject.toml [tool.importlinter],,,Pest Monitoring\Sprint 1
+,Task,,,,Fix the first round of analysis findings,Record what was found and fixed,,,Pest Monitoring\Sprint 1
+,User Story,,,As the team we want unit tests with coverage gates so that changes don't break the app,,docs/CODE-QUALITY.md,"Backend coverage >= 80%, frontend >= 60%; tests run in the IDE and in CI.",quality;test,Pest Monitoring\Sprint 1
+,Task,,,,Set up pytest-django and coverage,"backend/pyproject.toml, tests/conftest.py",,test,Pest Monitoring\Sprint 1
+,Task,,,,Set up Karma with JUnit and Cobertura output,frontend/karma.conf.js,,test,Pest Monitoring\Sprint 1
+21,Epic,Task 4: Create a Build Pipeline with Azure Pipelines (Continuous Integration),,,,,,,Pest Monitoring\Sprint 1
+,Feature,,Continuous integration,,,,,,Pest Monitoring\Sprint 1
+,User Story,,,As the team we want a CI pipeline so that every change is built and tested automatically,,azure-pipelines.yml,Pipeline runs on PRs and on main/develop; test results and coverage are published; it is required by branch policy.,pipeline,Pest Monitoring\Sprint 1
+,Task,,,,Create the pipeline from azure-pipelines.yml,Pipelines > New pipeline,,,Pest Monitoring\Sprint 1
+,Task,,,,Publish test results and code coverage,"PublishTestResults@2, PublishCodeCoverageResults@2",,,Pest Monitoring\Sprint 1
+,Task,,,,Add build validation to branch policies,docs/BRANCHING.md,,,Pest Monitoring\Sprint 1
+,Task,,,,Dashboard: test results trend and coverage widgets,docs/CODE-QUALITY.md,,,Pest Monitoring\Sprint 1
+,Task,,,,Record and fix a failing test through the pipeline,Create a Bug from the failed test; fix on a bugfix branch,,,Pest Monitoring\Sprint 1
