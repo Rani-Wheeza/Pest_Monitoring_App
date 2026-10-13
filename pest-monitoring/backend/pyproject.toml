@@ -44,7 +44,7 @@ known-first-party = ["config", "domain", "reference", "accounts", "sightings", "
 # ---------- Spelling (Task 3.1) ----------
 [tool.codespell]
 skip = "*.sqlite3,./media,./staticfiles,*.lock"
-ignore-words-list = "ue"
+ignore-words-list = "ue,aks"
 
 # ---------- Architecture validation (Task 3 higher grade) ----------
 [tool.importlinter]
