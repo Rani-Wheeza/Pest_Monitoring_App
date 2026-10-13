@@ -16,7 +16,7 @@ MAX_PIXELS = 40_000_000  # protects against "decompression bomb" images
 _ALLOWED = {"JPEG": "image/jpeg", "PNG": "image/png"}
 
 
-class ImageRejected(ValueError):
+class ImageRejectedError(ValueError):
     """The upload is not an acceptable sighting photo."""
 
 
@@ -31,22 +31,22 @@ class CleanImage:
 
 def clean_image(data: bytes) -> CleanImage:
     if not data:
-        raise ImageRejected("The file is empty.")
+        raise ImageRejectedError("The file is empty.")
     if len(data) > MAX_IMAGE_BYTES:
-        raise ImageRejected("Photos must be 10 MB or smaller.")
+        raise ImageRejectedError("Photos must be 10 MB or smaller.")
 
     try:
         with Image.open(io.BytesIO(data)) as probe:
             probe.verify()  # detects truncated or fake files
         image = Image.open(io.BytesIO(data))
     except (UnidentifiedImageError, OSError, SyntaxError) as exc:
-        raise ImageRejected("The file is not a valid image.") from exc
+        raise ImageRejectedError("The file is not a valid image.") from exc
 
     image_format = image.format
     if image_format not in _ALLOWED:
-        raise ImageRejected("Only JPG and PNG photos are accepted.")
+        raise ImageRejectedError("Only JPG and PNG photos are accepted.")
     if image.width * image.height > MAX_PIXELS:
-        raise ImageRejected("The photo's resolution is too large.")
+        raise ImageRejectedError("The photo's resolution is too large.")
 
     image.load()
     # Rebuild the image from its raw pixels only: EXIF, GPS and other metadata are dropped.

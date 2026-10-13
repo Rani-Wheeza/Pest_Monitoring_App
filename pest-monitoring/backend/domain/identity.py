@@ -15,7 +15,7 @@ ROLE_PRIORITY = ["Admin", "Worker", "Surveyor", "PestControlExpert", "User"]
 DEFAULT_ROLE = "User"
 
 
-class InvalidToken(Exception):
+class InvalidTokenError(Exception):
     """The token is missing, expired, forged or meant for another app."""
 
 
@@ -39,7 +39,7 @@ def decode_access_token(token: str, signing_key, audience: str, issuer: str) -> 
             options={"require": ["exp", "iat", "aud", "iss", "oid"]},
         )
     except jwt.PyJWTError as exc:
-        raise InvalidToken(str(exc)) from exc
+        raise InvalidTokenError(str(exc)) from exc
 
 
 def role_from_claims(claims: dict) -> str:

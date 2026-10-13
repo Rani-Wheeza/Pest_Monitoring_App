@@ -10,7 +10,7 @@ from domain.geo import parse_bbox
 
 from . import repositories as repo
 from . import services
-from .exceptions import DomainValidationError, NotAllowed
+from .exceptions import DomainValidationError, NotAllowedError
 from .serializers import (
     MapQuerySerializer,
     ReviewSerializer,
@@ -108,7 +108,7 @@ class SightingPhotoView(APIView):
         try:
             media = services.attach_photo(sighting, upload.read(), user=request.user,
                                           upload_token=request.headers.get("X-Upload-Token"))
-        except (DomainValidationError, NotAllowed) as exc:
+        except (DomainValidationError, NotAllowedError) as exc:
             return _error_response(exc)
         return Response(SightingMediaSerializer(media, context={"request": request}).data,
                         status=status.HTTP_201_CREATED)
@@ -127,7 +127,7 @@ class SightingReviewView(APIView):
         serializer.is_valid(raise_exception=True)
         try:
             sighting = services.review_sighting(sighting, worker=request.user, **serializer.validated_data)
-        except (DomainValidationError, NotAllowed) as exc:
+        except (DomainValidationError, NotAllowedError) as exc:
             return _error_response(exc)
         return Response(SightingSerializer(sighting, context={"request": request}).data)
 

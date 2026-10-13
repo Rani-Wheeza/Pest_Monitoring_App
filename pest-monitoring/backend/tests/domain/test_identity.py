@@ -8,7 +8,7 @@ import unittest
 import jwt
 from cryptography.hazmat.primitives.asymmetric import rsa
 
-from domain.identity import InvalidToken, decode_access_token, identity_from_claims, role_from_claims
+from domain.identity import InvalidTokenError, decode_access_token, identity_from_claims, role_from_claims
 
 AUDIENCE = "api://pest-monitoring"
 ISSUER = "https://login.microsoftonline.com/tenant-id/v2.0"
@@ -31,24 +31,24 @@ class DecodeTokenTests(unittest.TestCase):
         self.assertEqual(claims["given_name"], "Aisha")
 
     def test_wrong_signature_rejected(self):
-        with self.assertRaises(InvalidToken):
+        with self.assertRaises(InvalidTokenError):
             decode_access_token(make_token(key=OTHER_KEY), KEY.public_key(), AUDIENCE, ISSUER)
 
     def test_expired_token_rejected(self):
         old = make_token(iat=int(time.time()) - 7200, exp=int(time.time()) - 3600)
-        with self.assertRaises(InvalidToken):
+        with self.assertRaises(InvalidTokenError):
             decode_access_token(old, KEY.public_key(), AUDIENCE, ISSUER)
 
     def test_token_for_another_app_rejected(self):
-        with self.assertRaises(InvalidToken):
+        with self.assertRaises(InvalidTokenError):
             decode_access_token(make_token(aud="api://other-app"), KEY.public_key(), AUDIENCE, ISSUER)
 
     def test_wrong_issuer_rejected(self):
-        with self.assertRaises(InvalidToken):
+        with self.assertRaises(InvalidTokenError):
             decode_access_token(make_token(iss="https://evil.example"), KEY.public_key(), AUDIENCE, ISSUER)
 
     def test_garbage_rejected(self):
-        with self.assertRaises(InvalidToken):
+        with self.assertRaises(InvalidTokenError):
             decode_access_token("not.a.token", KEY.public_key(), AUDIENCE, ISSUER)
 
 
