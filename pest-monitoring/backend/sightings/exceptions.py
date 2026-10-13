@@ -15,5 +15,5 @@ class DomainValidationError(Exception):
         return out
 
 
-class NotAllowed(Exception):
+class NotAllowedError(Exception):
     """The user may not do this to this sighting. Views turn this into HTTP 403."""

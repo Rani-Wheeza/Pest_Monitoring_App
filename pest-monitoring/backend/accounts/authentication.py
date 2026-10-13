@@ -12,7 +12,7 @@ import jwt
 from django.conf import settings
 from rest_framework import authentication, exceptions
 
-from domain.identity import InvalidToken, decode_access_token, identity_from_claims
+from domain.identity import InvalidTokenError, decode_access_token, identity_from_claims
 
 from .models import User
 
@@ -48,7 +48,7 @@ class EntraJWTAuthentication(authentication.BaseAuthentication):
         try:
             signing_key = _jwks_client(settings.ENTRA_JWKS_URL).get_signing_key_from_jwt(token).key
             claims = decode_access_token(token, signing_key, settings.ENTRA_API_AUDIENCE, settings.ENTRA_ISSUER)
-        except (InvalidToken, jwt.PyJWTError) as exc:
+        except (InvalidTokenError, jwt.PyJWTError) as exc:
             raise exceptions.AuthenticationFailed("Invalid or expired sign-in token.") from exc
         user = user_for_identity(identity_from_claims(claims))
         if not user.is_active:

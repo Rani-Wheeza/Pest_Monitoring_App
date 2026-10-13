@@ -1,11 +1,11 @@
 """Unit tests for domain.validation (US-02 acceptance criteria)."""
 import unittest
 from dataclasses import replace
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from domain.validation import SightingInput, parse_count_range, validate_sighting
 
-NOW = datetime(2026, 10, 10, 12, 0, tzinfo=timezone.utc)
+NOW = datetime(2026, 10, 10, 12, 0, tzinfo=UTC)
 
 VALID = SightingInput(
     species_id=1, count_min=2, count_max=5,

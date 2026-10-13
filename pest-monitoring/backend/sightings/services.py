@@ -13,11 +13,11 @@ from django.db import transaction
 from django.utils import timezone
 
 from domain.geo import BoundingBox, to_feature_collection
-from domain.images import ImageRejected, clean_image
+from domain.images import ImageRejectedError, clean_image
 from domain.validation import FieldError, SightingInput, validate_sighting
 
 from . import repositories as repo
-from .exceptions import DomainValidationError, NotAllowed
+from .exceptions import DomainValidationError, NotAllowedError
 from .models import PestSighting, SightingStatus
 
 MAX_PHOTOS_PER_SIGHTING = 3
@@ -91,7 +91,7 @@ def attach_photo(sighting: PestSighting, raw: bytes, user=None, upload_token: st
     is_owner = user is not None and user.is_authenticated and sighting.reporter_id == user.pk
     is_worker = user is not None and user.is_authenticated and user.is_worker
     if not (is_owner or is_worker or _token_matches(upload_token, sighting)):
-        raise NotAllowed("You can only add photos to your own sightings.")
+        raise NotAllowedError("You can only add photos to your own sightings.")
     if sighting.status in (SightingStatus.RESOLVED, SightingStatus.REJECTED):
         raise DomainValidationError([FieldError("photo", "This sighting is closed.")])
     if repo.count_media(sighting) >= MAX_PHOTOS_PER_SIGHTING:
@@ -100,7 +100,7 @@ def attach_photo(sighting: PestSighting, raw: bytes, user=None, upload_token: st
 
     try:
         image = clean_image(raw)
-    except ImageRejected as exc:
+    except ImageRejectedError as exc:
         raise DomainValidationError([FieldError("photo", str(exc))]) from exc
 
     file = ContentFile(image.content, name=f"{sighting.pk}.{image.extension}")
@@ -115,7 +115,7 @@ def review_sighting(sighting: PestSighting, decision: str, worker,
                     priority: str = "", reason: str = "") -> PestSighting:
     """A worker confirms (with a priority) or rejects (with a reason) a new sighting."""
     if not worker.is_worker:
-        raise NotAllowed("Only workers can review sightings.")
+        raise NotAllowedError("Only workers can review sightings.")
     if sighting.status not in (SightingStatus.AWAITING_REVIEW, SightingStatus.IN_REVIEW):
         raise DomainValidationError([FieldError("status", "This sighting has already been reviewed.")])
     if decision not in REVIEW_DECISIONS:
