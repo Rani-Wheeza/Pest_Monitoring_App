@@ -111,7 +111,18 @@ describe('ReportSighting (US-02, US-03)', () => {
 
   it('uploads the photo after the report is saved, using the upload token', () => {
     api.submitSighting.and.returnValue(of({ ...SAVED, upload_token: 'tok' }));
-    api.uploadPhoto.and.returnValue(of({ id: 1 } as never));
+    api.uploadPhoto.and.returnValue(
+      of({
+        id: 1,
+        media_type: 'Image',
+        content_type: 'image/png',
+        size_bytes: 1,
+        uploaded_at: '2026-10-13T08:00:00Z',
+        url: '/media/rat.png',
+    }),
+  );
+
+    
     const file = new File(['x'], 'rat.png', { type: 'image/png' });
     component.onPhotoSelected({ target: { files: [file] } } as unknown as Event);
     fillDetails();

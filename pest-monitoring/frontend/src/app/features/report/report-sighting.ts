@@ -162,14 +162,23 @@ export class ReportSighting implements OnInit {
     this.step.set(1);
   }
 
+
   private showErrors(err: HttpErrorResponse): void {
     if (this.result()) {
       // The report was saved but the photo failed: still show the confirmation.
       this.step.set('done');
-      this.photoError.set(errorLines(err.error?.errors as ApiErrors).join(' ') || 'The photo could not be uploaded.');
+      this.photoError.set(
+        errorLines(err.error?.errors as ApiErrors).join(' ') ||
+        'The photo could not be uploaded.',
+      );
       return;
     }
+
     const lines = errorLines(err.error?.errors as ApiErrors);
-    this.serverErrors.set(lines.length ? lines : ['Something went wrong. Please try again.']);
+    this.serverErrors.set(
+      lines.length ? lines : ['Something went wrong. Please try again.'],
+    );
+    this.step.set(3);
   }
+
 }

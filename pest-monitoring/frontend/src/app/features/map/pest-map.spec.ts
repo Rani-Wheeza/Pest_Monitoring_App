@@ -19,7 +19,7 @@ describe('PestMap (US-04, US-05)', () => {
       { id: 1, common_name: 'Brown rat', family: 'Muridae' },
       { id: 2, common_name: 'House mouse', family: 'Muridae' },
       { id: 3, common_name: 'Feral pigeon', family: 'Columbidae' },
-    ] as never));
+    ]  as unknown as import('../../core/models').Species[]));
     api.mapFeatures.and.returnValue(of(DATA));
 
     TestBed.configureTestingModule({ imports: [PestMap], providers: [{ provide: ApiService, useValue: api }] });
