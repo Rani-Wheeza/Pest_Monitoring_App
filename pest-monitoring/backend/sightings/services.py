@@ -3,6 +3,7 @@
 Views call these functions; these functions call the domain rules and the
 repository layer. Nothing here knows about HTTP.
 """
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -25,21 +26,34 @@ UPLOAD_TOKEN_MAX_AGE = 30 * 60  # anonymous reporters have 30 minutes to add a p
 _signer = TimestampSigner(salt="sighting-photo-upload")
 
 
-@transaction.atomic
-def submit_sighting(data: SightingInput, tag_ids: list[int], reporter=None,
-                    now: datetime | None = None) -> PestSighting:
-    """US-02: validate and store a new sighting with status AwaitingReview."""
-    now = now or timezone.now()
+def _get_validated_species_and_tags(
+    data: SightingInput,
+    tag_ids: list[int],
+    now: datetime,
+):
     errors = validate_sighting(data, now)
 
     species = repo.get_active_species(data.species_id) if data.species_id is not None else None
     if data.species_id is not None and species is None:
         errors.append(FieldError("species_id", "Unknown pest species."))
+
     tags = repo.get_tags(tag_ids)
     if len(tags) != len(set(tag_ids)):
         errors.append(FieldError("tag_ids", "One or more tags do not exist."))
+
     if errors:
         raise DomainValidationError(errors)
+
+    return species, tags
+
+
+@transaction.atomic
+def submit_sighting(
+    data: SightingInput, tag_ids: list[int], reporter=None, now: datetime | None = None
+) -> PestSighting:
+    """US-02: validate and store a new sighting with status AwaitingReview."""
+    now = now or timezone.now()
+    species, tags = _get_validated_species_and_tags(data, tag_ids, now)
 
     district = repo.nearest_district(data.latitude, data.longitude)
     if district is None and reporter is not None:
@@ -85,18 +99,32 @@ def can_view(user, sighting: PestSighting) -> bool:
     return user.is_worker or sighting.reporter_id == user.pk
 
 
-@transaction.atomic
-def attach_photo(sighting: PestSighting, raw: bytes, user=None, upload_token: str | None = None):
-    """US-03: check, clean (remove GPS/EXIF) and store a photo for a sighting."""
+def _can_attach_photo(
+    sighting: PestSighting,
+    user,
+    upload_token: str | None,
+) -> bool:
     is_owner = user is not None and user.is_authenticated and sighting.reporter_id == user.pk
     is_worker = user is not None and user.is_authenticated and user.is_worker
-    if not (is_owner or is_worker or _token_matches(upload_token, sighting)):
-        raise NotAllowedError("You can only add photos to your own sightings.")
+    return is_owner or is_worker or _token_matches(upload_token, sighting)
+
+
+def _validate_photo_attachment(sighting: PestSighting) -> None:
     if sighting.status in (SightingStatus.RESOLVED, SightingStatus.REJECTED):
         raise DomainValidationError([FieldError("photo", "This sighting is closed.")])
+
     if repo.count_media(sighting) >= MAX_PHOTOS_PER_SIGHTING:
         message = f"A sighting can have at most {MAX_PHOTOS_PER_SIGHTING} photos."
         raise DomainValidationError([FieldError("photo", message)])
+
+
+@transaction.atomic
+def attach_photo(sighting: PestSighting, raw: bytes, user=None, upload_token: str | None = None):
+    """US-03: check, clean (remove GPS/EXIF) and store a photo for a sighting."""
+    if not _can_attach_photo(sighting, user, upload_token):
+        raise NotAllowedError("You can only add photos to your own sightings.")
+
+    _validate_photo_attachment(sighting)
 
     try:
         image = clean_image(raw)
@@ -111,8 +139,9 @@ REVIEW_DECISIONS = {"confirm": SightingStatus.CONFIRMED, "reject": SightingStatu
 
 
 @transaction.atomic
-def review_sighting(sighting: PestSighting, decision: str, worker,
-                    priority: str = "", reason: str = "") -> PestSighting:
+def review_sighting(
+    sighting: PestSighting, decision: str, worker, priority: str = "", reason: str = ""
+) -> PestSighting:
     """A worker confirms (with a priority) or rejects (with a reason) a new sighting."""
     if not worker.is_worker:
         raise NotAllowedError("Only workers can review sightings.")
@@ -142,21 +171,42 @@ def review_sighting(sighting: PestSighting, decision: str, worker,
 PUBLIC_COORDINATE_DECIMALS = 3  # about 100 m, so the public map never pinpoints a home
 
 
-def map_features(*, viewer=None, species_id: int | None = None, family: str | None = None,
-                 genus: str | None = None, days: int | None = 30, bbox: BoundingBox | None = None) -> dict:
+def map_features(
+    *,
+    viewer=None,
+    species_id: int | None = None,
+    family: str | None = None,
+    genus: str | None = None,
+    days: int | None = 30,
+    bbox: BoundingBox | None = None,
+) -> dict:
     """US-04 / US-05: GeoJSON for Azure Maps, filtered by species, family or genus."""
     is_worker = bool(viewer and viewer.is_authenticated and viewer.is_worker)
-    rows = repo.map_rows(include_unreviewed=is_worker, species_id=species_id, family=family, genus=genus,
-                         days=days, bbox=bbox, now=timezone.now())
+    rows = repo.map_rows(
+        include_unreviewed=is_worker,
+        species_id=species_id,
+        family=family,
+        genus=genus,
+        days=days,
+        bbox=bbox,
+        now=timezone.now(),
+    )
     shaped = []
     for row in rows:
         lat, lon = float(row["latitude"]), float(row["longitude"])
         if not is_worker:
             lat, lon = round(lat, PUBLIC_COORDINATE_DECIMALS), round(lon, PUBLIC_COORDINATE_DECIMALS)
-        shaped.append({
-            "id": row["id"], "latitude": lat, "longitude": lon,
-            "species": row["species__common_name"], "family": row["species__family"],
-            "genus": row["species__genus"], "priority": row["priority"] or "Low",
-            "status": row["status"], "observed_at": row["observed_at"].isoformat(),
-        })
+        shaped.append(
+            {
+                "id": row["id"],
+                "latitude": lat,
+                "longitude": lon,
+                "species": row["species__common_name"],
+                "family": row["species__family"],
+                "genus": row["species__genus"],
+                "priority": row["priority"] or "Low",
+                "status": row["status"],
+                "observed_at": row["observed_at"].isoformat(),
+            }
+        )
     return to_feature_collection(shaped)
