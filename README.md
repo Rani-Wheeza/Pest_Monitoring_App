@@ -37,3 +37,16 @@ Notification Hubs
 Alerts
 
 The project is expected to result in a functioning, containerised application capable of scaling with user activity, providing interactive pest information through maps and alerts.
+
+## Version Control Workflow
+
+Git and GitHub are used to manage the source code and maintain a history of changes to the Pest Monitoring application.
+
+- **Main branch:** Holds the primary project code.
+- **Feature and documentation branches:** Allow changes to be developed separately from the main branch.
+- **Commits:** Record changes with meaningful messages.
+- **Remote synchronisation:** Fetch and pull remote changes before pushing local changes when necessary.
+- **Pull requests:** Support code review and controlled integration of changes.
+- **Continuous integration:** Azure Pipelines automatically runs code-quality checks, tests, coverage reporting and build verification.
+
+Changes should be tested before integration. Where team workflow and repository permissions allow, pull requests should be reviewed before being merged into `main`.
