@@ -49,6 +49,7 @@ ignore-words-list = "ue,aks"
 # ---------- Architecture validation (Task 3 higher grade) ----------
 [tool.importlinter]
 root_packages = ["domain", "config", "reference", "accounts", "sightings", "alerts"]
+include_external_packages = true
 
 [[tool.importlinter.contracts]]
 name = "Domain rules are plain Python (no Django, no web framework)"
