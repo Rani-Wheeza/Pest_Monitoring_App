@@ -1,7 +1,9 @@
-import { Component } from '@angular/core';
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { Component, inject } from '@angular/core';
+import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
-/** App shell: top navigation for residents (Task 6.3) and the page outlet. */
+import { AuthService } from './core/auth.service';
+
+/** App shell: top navigation (Task 6.3), sign in / sign out, and the page outlet. */
 @Component({
   selector: 'app-root',
   imports: [RouterOutlet, RouterLink, RouterLinkActive],
@@ -12,6 +14,12 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
         <a routerLink="/report" routerLinkActive="active">Report a sighting</a>
         <a routerLink="/map" routerLinkActive="active">Pest map</a>
         <a routerLink="/my-reports" routerLinkActive="active">My reports</a>
+        @if (auth.signedIn()) {
+          <span class="hint">Signed in as {{ auth.user()?.username }}</span>
+          <button type="button" class="link" (click)="signOut()">Sign out</button>
+        } @else {
+          <a routerLink="/login" routerLinkActive="active">Sign in</a>
+        }
       </nav>
     </header>
     <main>
@@ -19,4 +27,12 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
     </main>
   `,
 })
-export class App {}
+export class App {
+  readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
+
+  signOut(): void {
+    this.auth.logout();
+    this.router.navigate(['/report']);
+  }
+}
