@@ -38,7 +38,7 @@ ID,Work Item Type,Title 1,Title 2,Title 3,Title 4,Description,Acceptance Criteri
 ,Feature,,Mapping & Visualisation,,,Epic 3 in Task 9,,,Pest Monitoring\Sprint 1
 ,User Story,,,US-04 View pest map,,"As a user, I want to view pest activity on a map so that I can understand where pest sightings have occurred.","Map data comes from stored sightings as GeoJSON; the public map shows only reviewed, open sightings with positions rounded to about 100 m; workers also see unreviewed ones.",,Pest Monitoring\Sprint 1
 ,Task,,,,GET /api/map/ GeoJSON endpoint,"backend/domain/geo.py, sightings/services.map_features",,,Pest Monitoring\Sprint 1
-,Task,,,,Angular map page with Azure Maps adapter,"frontend/src/app/features/map/, core/azure-maps.ts",,ux,Pest Monitoring\Sprint 1
+,Task,,,,Angular map page with Azure Maps adapter,"frontend/src/app/features/map/, core/map-adapter.ts",,ux,Pest Monitoring\Sprint 1
 ,Task,,,,Test: map API,"backend/tests/api/test_map_api.py, frontend pest-map.spec.ts",,test,Pest Monitoring\Sprint 1
 ,User Story,,,US-05 Filter pest map,,"As a user, I want to filter pest activity by species so that I can investigate particular pests.","Filter by species, family, genus, days and visible area; clearing filters shows all sightings again.",,Pest Monitoring\Sprint 1
 ,Task,,,,"Map filters (species, family, genus, days, bbox)","sightings/serializers.MapQuerySerializer, frontend map filter bar",,,Pest Monitoring\Sprint 1

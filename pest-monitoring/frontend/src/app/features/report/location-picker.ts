@@ -1,6 +1,6 @@
 import { AfterViewInit, Component, ElementRef, OnDestroy, input, output, signal, viewChild } from '@angular/core';
 
-import { DEFAULT_CENTRE, LonLat, MapHandle, createMap, mapsConfigured } from '../../core/azure-maps';
+import { DEFAULT_CENTRE, LonLat, MapHandle, createMap, mapsConfigured } from '../../core/map-adapter';
 import { isValidLatitude, isValidLongitude } from '../../core/report-rules';
 
 export interface Pin {
@@ -11,7 +11,7 @@ export interface Pin {
 
 /**
  * Drop a pin on the map, use the phone's location, or type coordinates (Figma 17-312).
- * The map only loads when an Azure Maps key is configured, so tests and local
+ * The map only loads when a map style URL is configured, so tests and local
  * development work without one.
  */
 @Component({

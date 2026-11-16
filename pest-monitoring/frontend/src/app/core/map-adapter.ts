@@ -1,5 +1,7 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- the Azure Maps SDK is wrapped here (adapter) so the
-   rest of the app only uses the small typed MapHandle interface below. */
+/* Wraps MapLibre GL JS behind the small MapHandle interface (adapter pattern), so the
+   components never touch the map library and the provider can be swapped in this one file. */
+import type { ExpressionSpecification, GeoJSONSource, Map as MapLibreMap, Marker } from 'maplibre-gl';
+
 import { environment } from '../../environments/environment';
 import { FeatureCollection } from './models';
 
@@ -16,76 +18,97 @@ export interface MapHandle {
 }
 
 export const DEFAULT_CENTRE: LonLat = [-9.7026, 52.2713]; // Tralee
-const PRIORITY_COLOUR = ['match', ['get', 'priority'], 'High', '#d64545', 'Medium', '#e8a93a', '#4a78b0'];
+
+// Point colour by priority: High = red, Medium = amber, anything else = blue
+const PRIORITY_COLOUR: ExpressionSpecification = [
+  'match', ['get', 'priority'], 'High', '#d64545', 'Medium', '#e8a93a', '#4a78b0',
+];
+const CLUSTER_LAYERS = ['clusters', 'cluster-count', 'points'];
+
+// Our FeatureCollection model is GeoJSON, but typed for our API, so convert it to the type MapLibre expects
+type MapData = Parameters<GeoJSONSource['setData']>[0];
+const toMapData = (data: FeatureCollection) => data as unknown as MapData;
+const EMPTY = toMapData({ type: 'FeatureCollection', features: [] });
 
 export function mapsConfigured(): boolean {
-  return !!environment.azureMapsKey;
+  return !!environment.mapStyleUrl;
 }
 
-/** Loads the Azure Maps SDK only when needed and returns a ready map. */
+/** Loads MapLibre only when a map is actually shown, and returns a ready map. */
 export async function createMap(host: HTMLElement, centre: LonLat = DEFAULT_CENTRE, zoom = 12): Promise<MapHandle> {
-  const atlas: any = await import('azure-maps-control');
-  const map: any = new atlas.Map(host, {
-    center: centre,
-    zoom,
-    authOptions: { authType: atlas.AuthenticationType.subscriptionKey, subscriptionKey: environment.azureMapsKey },
-  });
-  await new Promise<void>((resolve) => map.events.add('ready', () => resolve()));
+  // MapLibre ships as a UMD bundle, so the API can end up on the module itself or on .default
+  const mod = await import('maplibre-gl');
+  const maplibregl = (mod as unknown as { default?: typeof mod }).default ?? mod;
+  // Angular's bundler can't find MapLibre's worker by itself, so point it at the copy angular.json puts in the site root
+  maplibregl.setWorkerUrl(new URL('maplibre-gl-worker.mjs', document.baseURI).href);
+  
+  const map: MapLibreMap = new maplibregl.Map({ container: host, style: environment.mapStyleUrl, center: centre, zoom });
+  map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+  await new Promise<void>((resolve) => map.once('load', () => resolve()));
 
-  const source: any = new atlas.source.DataSource(undefined, { cluster: true, clusterRadius: 45 });
-  map.sources.add(source);
-  const clusterLayers: any[] = [
-    new atlas.layer.BubbleLayer(source, undefined, { filter: ['has', 'point_count'], radius: 18, color: '#176b4a' }),
-    new atlas.layer.SymbolLayer(source, undefined, {
-      filter: ['has', 'point_count'],
-      iconOptions: { image: 'none' },
-      textOptions: { textField: ['get', 'point_count_abbreviated'], color: '#ffffff' },
-    }),
-    new atlas.layer.BubbleLayer(source, undefined, { filter: ['!', ['has', 'point_count']], color: PRIORITY_COLOUR, radius: 7 }),
-  ];
-  const heatLayer: any = new atlas.layer.HeatMapLayer(source, undefined, { weight: ['get', 'heat_weight'], radius: 25 });
-  let mode: MapMode | null = null;
-  let pin: any = null;
+  // Two copies of the data: clustered for the cluster view, raw points for the heat map
+  map.addSource('sightings', { type: 'geojson', data: EMPTY, cluster: true, clusterRadius: 45 });
+  map.addSource('sightings-heat', { type: 'geojson', data: EMPTY });
+
+  // Cluster view: green bubble with a count, single sightings coloured by priority
+  map.addLayer({
+    id: 'clusters', type: 'circle', source: 'sightings', filter: ['has', 'point_count'],
+    paint: { 'circle-color': '#176b4a', 'circle-radius': 18 },
+  });
+  map.addLayer({
+    id: 'cluster-count', type: 'symbol', source: 'sightings', filter: ['has', 'point_count'],
+    layout: { 'text-field': ['get', 'point_count_abbreviated'], 'text-font': ['Noto Sans Bold'], 'text-size': 12 },
+    paint: { 'text-color': '#ffffff' },
+  });
+  map.addLayer({
+    id: 'points', type: 'circle', source: 'sightings', filter: ['!', ['has', 'point_count']],
+    paint: { 'circle-color': PRIORITY_COLOUR, 'circle-radius': 7, 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 1 },
+  });
+
+  // Heat map view, hidden until the user switches to it
+  map.addLayer({
+    id: 'heat', type: 'heatmap', source: 'sightings-heat', layout: { visibility: 'none' },
+    paint: { 'heatmap-weight': ['get', 'heat_weight'], 'heatmap-radius': 25 },
+  });
+
+  const show = (layerId: string, visible: boolean) =>
+    map.setLayoutProperty(layerId, 'visibility', visible ? 'visible' : 'none');
+
+  let mode: MapMode = 'clusters';
+  let pin: Marker | null = null;
 
   const handle: MapHandle = {
     showSightings(data) {
-      if (mode === null) {
-        handle.setMode('clusters');
-      }
-      source.setShapes(data);
+      (map.getSource('sightings') as GeoJSONSource).setData(toMapData(data));
+      (map.getSource('sightings-heat') as GeoJSONSource).setData(toMapData(data));
     },
     setMode(next) {
       if (next === mode) {
         return;
       }
-      if (next === 'heat') {
-        clusterLayers.forEach((l) => map.layers.remove(l));
-        map.layers.add(heatLayer);
-      } else {
-        if (mode === 'heat') {
-          map.layers.remove(heatLayer);
-        }
-        clusterLayers.forEach((l) => map.layers.add(l));
-      }
+      CLUSTER_LAYERS.forEach((layerId) => show(layerId, next === 'clusters'));
+      show('heat', next === 'heat');
       mode = next;
     },
     addDraggablePin(position, onMove) {
-      pin = new atlas.HtmlMarker({ position, draggable: true });
-      map.markers.add(pin);
-      map.events.add('dragend', pin, () => onMove(pin.getOptions().position as LonLat));
-      map.events.add('click', (e: any) => {
-        if (e.position) {
-          pin.setOptions({ position: e.position });
-          onMove(e.position as LonLat);
-        }
+      const marker = new maplibregl.Marker({ draggable: true, color: '#176b4a' }).setLngLat(position).addTo(map);
+      marker.on('dragend', () => {
+        const { lng, lat } = marker.getLngLat();
+        onMove([lng, lat]);
       });
+      // Clicking anywhere on the map moves the pin there too
+      map.on('click', (e) => {
+        marker.setLngLat(e.lngLat);
+        onMove([e.lngLat.lng, e.lngLat.lat]);
+      });
+      pin = marker;
     },
     movePin(position) {
-      pin?.setOptions({ position });
-      map.setCamera({ center: position });
+      pin?.setLngLat(position);
+      map.easeTo({ center: position });
     },
     dispose() {
-      map.dispose();
+      map.remove();
     },
   };
   return handle;

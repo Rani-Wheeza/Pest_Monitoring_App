@@ -76,7 +76,6 @@ If this fails with a permission error, your university account can't create app 
 | `sonarOrganization` | your SonarCloud organization key | |
 | `djangoSecretKey` | 50 random letters and numbers | 🔒 |
 | `demoAdminPassword` | password for the `admin` account on `/admin/` | 🔒 |
-| `azureMapsKey` | Azure Maps key, or `none` | 🔒 |
 
 *Pipeline permissions → +* → add the pipeline.
 
