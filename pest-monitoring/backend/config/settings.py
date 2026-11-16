@@ -1,8 +1,8 @@
 """Django settings for the Pest Monitoring backend.
 
-Every value that changes between a laptop, the CI pipeline and Azure is read
+Every value that changes between a laptop, the CI pipeline and the server is read
 from an environment variable. Defaults are safe for local development and tests:
-SQLite, local file storage and no Entra ID sign-in required.
+SQLite, local file storage, and username/password sign-in with API tokens.
 """
 from __future__ import annotations
 
@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "rest_framework.authtoken",  # API tokens for sign-in (US-01)
     "corsheaders",
     "reference",
     "accounts",
@@ -52,8 +53,6 @@ MIDDLEWARE = [
     "config.health.HealthCheckMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
-    "corsheaders.middleware.CorsMiddleware",
-    "django.middleware.security.SecurityMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -133,8 +132,10 @@ if env("AZURE_STORAGE_ACCOUNT"):
 
 # ---------- API ----------
 REST_FRAMEWORK = {
+    # Entra ID switches itself off when ENTRA_TENANT_ID is empty; the Angular app signs in with tokens
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "accounts.authentication.EntraJWTAuthentication",
+        "rest_framework.authentication.TokenAuthentication",
         "rest_framework.authentication.SessionAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticatedOrReadOnly"],
@@ -147,7 +148,7 @@ REST_FRAMEWORK = {
 CORS_ALLOWED_ORIGINS = env_list("CORS_ALLOWED_ORIGINS", "http://localhost:4200")
 CORS_ALLOW_HEADERS = (*default_headers, "x-upload-token")
 
-# ---------- Microsoft Entra ID (US-01) ----------
+# ---------- Microsoft Entra ID (not used: the team chose token sign-in) ----------
 ENTRA_TENANT_ID = env("ENTRA_TENANT_ID")
 ENTRA_API_AUDIENCE = env("ENTRA_API_AUDIENCE")  # e.g. api://pest-monitoring
 ENTRA_ISSUER = env("ENTRA_ISSUER", f"https://login.microsoftonline.com/{ENTRA_TENANT_ID}/v2.0")

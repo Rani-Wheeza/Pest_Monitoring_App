@@ -1,4 +1,4 @@
-"""Application user (Task 5: UserAccount). Passwords are handled by Entra ID."""
+"""Application user (Task 5: UserAccount). Signs in with a Django password and an API token."""
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
