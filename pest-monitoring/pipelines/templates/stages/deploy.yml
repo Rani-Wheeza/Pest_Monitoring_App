@@ -89,16 +89,12 @@ stages:
               WORK="$(Agent.TempDirectory)/web"
               mkdir -p "$WORK"
               cp "$(Pipeline.Workspace)/frontend-package/pestpatrol-web.zip" "$WORK/site.zip"
-              # "none" or an undefined variable (left as the literal text "$(name)") means no map key
-              case "$MAPS_KEY" in '$('*|none) MAPS_KEY="" ;; esac
               cat > "$WORK/env.js" <<JS
               // Written by the release pipeline: ${{ parameters.environmentName }}, build $(Build.BuildId)
-              window.__env = { apiUrl: '$(backendUrl)/api', azureMapsKey: '${MAPS_KEY}' };
+              window.__env = { apiUrl: '$(backendUrl)/api' };
               JS
               (cd "$WORK" && zip -q site.zip env.js)
               cat "$WORK/env.js"
-            env:
-              MAPS_KEY: $(azureMapsKey)
             displayName: Add environment settings (env.js) to the frontend package
 
           - task: AzureWebApp@1

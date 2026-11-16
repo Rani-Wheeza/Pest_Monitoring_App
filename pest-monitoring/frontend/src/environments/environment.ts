@@ -2,6 +2,6 @@
 export const environment = {
   production: false,
   apiUrl: '/api',
-  // Leave empty to use the coordinate fields instead of the map. Never commit a real key.
-  azureMapsKey: '',
+  // Free OpenStreetMap vector tiles, no key or account needed. Set to '' to hide the map.
+  mapStyleUrl: 'https://tiles.openfreemap.org/styles/liberty',
 };

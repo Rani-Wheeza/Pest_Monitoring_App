@@ -4,6 +4,7 @@ import { of } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { FeatureCollection } from '../../core/models';
 import { PestMap } from './pest-map';
+import { environment } from '../../../environments/environment';
 
 const DATA: FeatureCollection = {
   type: 'FeatureCollection',
@@ -13,6 +14,17 @@ const DATA: FeatureCollection = {
 };
 
 describe('PestMap (US-04, US-05)', () => {
+  const originalStyle = environment.mapStyleUrl;
+
+  // No real map in unit tests: headless Chrome has no reliable WebGL
+  beforeEach(() => {
+    environment.mapStyleUrl = '';
+  });
+
+  afterEach(() => {
+    environment.mapStyleUrl = originalStyle;
+  });
+
   it('lists sightings and builds the family filter from the species list', () => {
     const api = jasmine.createSpyObj<ApiService>('ApiService', ['getSpecies', 'mapFeatures']);
     api.getSpecies.and.returnValue(of([

@@ -30,7 +30,7 @@ Use any of these (one is enough, two is better):
 | US-02 Submit pest report | `backend/domain/validation.py`, `backend/sightings/{models,repositories,services,serializers,views}.py`, `frontend/src/app/features/report/` | `tests/domain/test_validation.py`, `tests/api/test_sightings_api.py`, `report-sighting.spec.ts` |
 | US-03 Attach a photo | `backend/domain/images.py`, `services.attach_photo`, `SightingPhotoView`, photo picker in `report-sighting.html` | `tests/domain/test_images.py`, photo tests in `test_sightings_api.py`, `report-rules.spec.ts` |
 | Worker review | `services.review_sighting`, `SightingReviewView`, `AllSightingsView` | review tests in `test_sightings_api.py` |
-| US-04 View pest map | `backend/domain/geo.py`, `services.map_features`, `MapView`, `frontend/src/app/features/map/`, `core/azure-maps.ts` | `tests/domain/test_geo.py`, `tests/api/test_map_api.py`, `pest-map.spec.ts` |
+| US-04 View pest map | `backend/domain/geo.py`, `services.map_features`, `MapView`, `frontend/src/app/features/map/`, `core/map-adapter.ts` | `tests/domain/test_geo.py`, `tests/api/test_map_api.py`, `pest-map.spec.ts` |
 | US-05 Filter pest map | `MapQuerySerializer`, `repositories.map_rows`, map filter bar | filter tests in `test_map_api.py`, `api.service.spec.ts` |
 | US-06 Receive pest alert | `backend/domain/alerts.py`, `backend/domain/notification_hub.py`, `backend/alerts/` | `tests/domain/test_alerts.py`, `test_notification_hub.py`, `tests/api/test_alerts_api.py`, `test_senders_and_seed.py` |
 | Resident dashboard | `GET /api/sightings/mine/`, `frontend/src/app/features/my-reports/` | `my-reports.spec.ts`, `test_my_sightings_*` |

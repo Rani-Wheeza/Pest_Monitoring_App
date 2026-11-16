@@ -1,13 +1,16 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { LocationPicker, Pin } from './location-picker';
+import { environment } from '../../../environments/environment';
 
 describe('LocationPicker', () => {
   let fixture: ComponentFixture<LocationPicker>;
   let picker: LocationPicker;
   let emitted: Pin[];
+  const originalStyle = environment.mapStyleUrl;
 
   beforeEach(() => {
+    environment.mapStyleUrl = '';
     TestBed.configureTestingModule({ imports: [LocationPicker] });
     fixture = TestBed.createComponent(LocationPicker);
     picker = fixture.componentInstance;
@@ -16,11 +19,15 @@ describe('LocationPicker', () => {
     fixture.detectChanges();
   });
 
+  afterEach(() => {
+    environment.mapStyleUrl = originalStyle;
+  });
+
   function type(which: 'lat' | 'lon', value: string) {
     picker.typed({ target: { value } } as unknown as Event, which);
   }
 
-  it('shows coordinate fields when no Azure Maps key is configured', () => {
+  it('shows coordinate fields when no map style is configured', () => {
     expect(picker.mapsEnabled).toBeFalse();
     expect(fixture.nativeElement.querySelector('#lat')).not.toBeNull();
   });

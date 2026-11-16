@@ -3,12 +3,12 @@ import { AfterViewInit, Component, ElementRef, OnDestroy, OnInit, inject, signal
 import { FormsModule } from '@angular/forms';
 
 import { ApiService } from '../../core/api.service';
-import { MapHandle, MapMode, createMap, mapsConfigured } from '../../core/azure-maps';
+import { MapHandle, MapMode, createMap, mapsConfigured } from '../../core/map-adapter';
 import { FeatureCollection, MapFeature, MapFilters, Species } from '../../core/models';
 
 /**
  * Pest activity map with species / family filters (Task 6.4, US-04, US-05).
- * Shows clusters or a heat map with Azure Maps, and always a list of the same
+ * Shows clusters or a heat map with MapLibre, and always a list of the same
  * sightings for users who find the map hard to read.
  */
 @Component({

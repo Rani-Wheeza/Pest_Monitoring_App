@@ -38,7 +38,7 @@ import-linter checks these rules on every build (see [CODE-QUALITY.md](CODE-QUAL
 | **Repository / DAO** | `sightings/repositories.py` | Services never write queries, so the database can change (SQLite → Azure SQL) without touching business logic |
 | **Service layer** | `sightings/services.py`, `alerts/services.py` | Business workflows in one place, reused by the API and the management command |
 | **Domain model independent of the framework** | `backend/domain/` | Rules are unit tested in milliseconds without a database |
-| **Adapter** | `frontend/src/app/core/azure-maps.ts` | Wraps the Azure Maps SDK behind a small `MapHandle` interface; the SDK only loads when a key is configured |
+| **Adapter** | frontend/src/app/core/map-adapter.ts | Wraps MapLibre GL JS behind a small MapHandle interface. Swapped from Azure Maps in Part 3 without touching any component, which shows why the adapter was worth it |
 | **Strategy** | `alerts/senders.py` (`ConsoleSender` / `NotificationHubSender`) | Same alert code locally and in Azure; the sender is picked by settings |
 | **Dependency injection** | Angular `inject(ApiService)`; services accept a `sender` parameter | Tests swap in fakes |
 | **Data binding** | Angular reactive forms and signals | The form state drives the UI |

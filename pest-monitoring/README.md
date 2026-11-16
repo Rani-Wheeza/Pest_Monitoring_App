@@ -50,7 +50,7 @@ npm install                 # creates package-lock.json - commit it
 npm start                   # proxies /api to the Django server
 ```
 
-The map pages use Azure Maps only when `azureMapsKey` is set in `frontend/src/environments/environment.ts`. Without a key, the forms use latitude/longitude fields and the map page shows the list view. **Never commit a real key.**
+The map uses MapLibre GL JS with free OpenFreeMap tiles (no key needed). Set mapStyleUrl to '' in frontend/src/environments/environment.ts to hide it and use the latitude/longitude fields instead.
 
 ### 3. Run the tests
 
@@ -69,7 +69,7 @@ cd frontend && npm run test:ci                      # same, headless, as in the 
 | US-01 Sign in (Entra ID) | Token check in `accounts/authentication.py`, `GET /api/me/` | Sprint 2: MSAL Angular |
 | US-02 Submit pest sighting | `POST /api/sightings/`, rules in `domain/validation.py` | 3-step form `features/report/` |
 | US-03 Attach a photo | `POST /api/sightings/<id>/photo/`, `domain/images.py` (JPG/PNG ≤ 10 MB, GPS removed) | Photo picker in step 1 |
-| US-04 View pest map | `GET /api/map/` (GeoJSON) | `features/map/` with Azure Maps |
+| US-04 View pest map | `GET /api/map/` (GeoJSON) | `features/map/` with MapLibre |
 | US-05 Filter pest map | `?species_id=&family=&genus=&days=&bbox=` | Filter bar on the map page |
 | US-06 Receive pest alert | `python manage.py check_pest_levels`, `domain/alerts.py`, `GET /api/notifications/` | Sprint 2: Alerts screen |
 | Worker review | `PATCH /api/sightings/<id>/review/`, `GET /api/sightings/all/` | Sprint 2: worker screens |

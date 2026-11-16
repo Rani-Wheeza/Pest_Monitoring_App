@@ -39,7 +39,7 @@ parameters:
 
 variables:
 - group: pestpatrol             # Library: acrName, azureSubscriptionId, location, sonarOrganization,
-                                # djangoSecretKey (secret), demoAdminPassword (secret), azureMapsKey (secret)
+                                # djangoSecretKey (secret), demoAdminPassword (secret)
 - name: pythonVersion
   value: '3.12'
 - name: nodeVersion

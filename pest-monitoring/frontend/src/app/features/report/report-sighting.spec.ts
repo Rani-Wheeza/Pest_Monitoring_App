@@ -4,6 +4,7 @@ import { of, throwError } from 'rxjs';
 
 import { ApiService } from '../../core/api.service';
 import { Sighting } from '../../core/models';
+import { environment } from '../../../environments/environment';
 import { ReportSighting } from './report-sighting';
 
 const SAVED = { id: 7, reference: 'PP-7', resident_status: 'Awaiting review' } as Sighting;
@@ -12,8 +13,12 @@ describe('ReportSighting (US-02, US-03)', () => {
   let fixture: ComponentFixture<ReportSighting>;
   let component: ReportSighting;
   let api: jasmine.SpyObj<ApiService>;
+  const originalStyle = environment.mapStyleUrl;
 
   beforeEach(async () => {
+    // The report form contains the location picker; keep the real map out of unit tests
+    environment.mapStyleUrl = '';
+
     api = jasmine.createSpyObj<ApiService>('ApiService', ['getSpecies', 'getTags', 'submitSighting', 'uploadPhoto']);
     api.getSpecies.and.returnValue(of([{ id: 1, common_name: 'Brown rat', scientific_name: '', category: 'Rodent',
       family: 'Muridae', genus: 'Rattus', is_invasive: false }]));
@@ -29,6 +34,10 @@ describe('ReportSighting (US-02, US-03)', () => {
     fixture.detectChanges();
   });
 
+  afterEach(() => {
+    environment.mapStyleUrl = originalStyle;
+  });
+
   function fillDetails() {
     component.details.patchValue({ species_id: 1, count: '2-5', description: 'Rats by the bins' });
   }
@@ -38,7 +47,7 @@ describe('ReportSighting (US-02, US-03)', () => {
     component.location.patchValue({ street_or_landmark: 'Community centre', suburb_or_postcode: 'Riverside' });
   }
 
-  it('starts on step 1 and loads species and tags', () => {
+  it('shows coordinate fields when no map style is configured', () => {
     expect(component.step()).toBe(1);
     expect(component.species().length).toBe(1);
     expect(component.tags().length).toBe(1);

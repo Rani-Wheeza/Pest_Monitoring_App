@@ -2,7 +2,7 @@
 // each environment (test, prod), so one build artifact can be deployed everywhere.
 interface RuntimeEnv {
   apiUrl?: string;
-  azureMapsKey?: string;
+  mapStyleUrl?: string;
 }
 
 const runtime: RuntimeEnv = (globalThis as { __env?: RuntimeEnv }).__env ?? {};
@@ -10,5 +10,6 @@ const runtime: RuntimeEnv = (globalThis as { __env?: RuntimeEnv }).__env ?? {};
 export const environment = {
   production: true,
   apiUrl: runtime.apiUrl || '/api',
-  azureMapsKey: runtime.azureMapsKey || '',
+  // ?? rather than || so env.js can still turn the map off with an empty string
+  mapStyleUrl: runtime.mapStyleUrl ?? 'https://tiles.openfreemap.org/styles/liberty',
 };
