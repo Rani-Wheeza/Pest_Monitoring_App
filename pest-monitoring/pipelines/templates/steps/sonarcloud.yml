@@ -1,11 +1,8 @@
 # Reusable task: SonarCloud analysis with the coverage made by the test jobs, then wait
-# for the quality gate. sonar.qualitygate.wait=true (sonar-project.properties) fails the
-# build when the gate fails.
+# for the quality gate. Uses SonarSource's npm scanner instead of the Marketplace extension,
+# so it needs no organisation admin rights or service connection, only the secret sonarToken.
+# sonar.qualitygate.wait=true (sonar-project.properties) fails the build when the gate fails.
 parameters:
-- name: serviceConnection
-  type: string
-- name: organization
-  type: string
 - name: projectFolder
   type: string
   default: pest-monitoring
@@ -33,22 +30,15 @@ steps:
     grep -m3 "^SF:" "$SRC/frontend/coverage/lcov.info"
   displayName: Point coverage paths at this checkout
 
-- task: SonarCloudPrepare@4
-  inputs:
-    SonarCloud: ${{ parameters.serviceConnection }}
-    organization: ${{ parameters.organization }}
-    scannerMode: cli
-    configMode: file
-    configFile: sonar-project.properties
-  displayName: Prepare SonarCloud analysis
-
-- task: SonarCloudAnalyze@4
-  inputs:
-    jdkversion: JAVA_HOME_21_X64
-  displayName: Run SonarCloud analysis
-
-- task: SonarCloudPublish@4
-  condition: succeededOrFailed()
-  inputs:
-    pollingTimeoutSec: '300'
-  displayName: Publish quality gate result
+# Runs from the repository root so the scanner finds sonar-project.properties.
+# The secret has to be passed in through env: Azure Pipelines never exposes secrets automatically.
+- bash: |
+    set -e
+    case "$SONAR_TOKEN" in
+      ''|'$('*) echo "##vso[task.logissue type=error]Pipeline variable sonarToken is missing (CI-CD.md, SonarCloud set-up)"; exit 1 ;;
+    esac
+    npx --yes @sonar/scan
+  workingDirectory: $(Build.SourcesDirectory)
+  displayName: Run SonarCloud analysis and wait for the quality gate
+  env:
+    SONAR_TOKEN: $(sonarToken)
